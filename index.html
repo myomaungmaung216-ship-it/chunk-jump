@@ -224,10 +224,15 @@
     const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${adminId}&text=${encodeURIComponent(text)}&parse_mode=Markdown`;
 
     try {
-        await fetch(url);
-        console.log("Notification Sent!");
+        const response = await fetch(url);
+        const result = await response.json();
+        if (result.ok) {
+            alert("ငွေထုတ်ရန် တောင်းဆိုမှု အောင်မြင်ပါသည်။");
+        } else {
+            alert("Error: " + result.description);
+        }
     } catch (error) {
-        console.error("Error:", error);
+        alert("ချိတ်ဆက်မှု မအောင်မြင်ပါ- " + error);
     }
 }
 </script>
