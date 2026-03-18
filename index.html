@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Chunk Jump - Updated</title>
+    <style>
+        body { margin: 0; background: #1e90ff; overflow: hidden; touch-action: none; font-family: sans-serif; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: linear-gradient(#1e90ff, #87CEEB); }
+
+        /* Coins Display */
+        .stats-container {
+            position: absolute; top: 15px; left: 15px; z-index: 2500;
+            background: rgba(0, 0, 0, 0.6); color: #ffd700; padding: 10px 18px; 
+            border-radius: 12px; font-weight: bold; font-size: 19px; 
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Start Screen */
+        #start-screen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #1e90ff; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; z-index: 2000; 
+        }
+        #play-btn { 
+            background: #28a745; color: white; border: 4px solid white; 
+            padding: 15px 70px; font-size: 30px; font-weight: bold; 
+            border-radius: 50px; cursor: pointer; margin-bottom: 20px;
+        }
+        #menu-wd-btn {
+            background: #007bff; color: white; border: 2px solid white;
+            padding: 12px 40px; font-size: 18px; font-weight: bold;
+            border-radius: 12px; cursor: pointer;
+        }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; }
+        .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; background: #fff; padding: 25px; border-radius: 20px; border: 4px solid #007bff; }
+        input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; }
+
+        /* Game Objects */
+        #player { position: absolute; width: 40px; height: 40px; background: #b71c1c; border-radius: 8px; display: none; z-index: 100; border: 2px solid #333; }
+        .plt { position: absolute; height: 15px; background: white; border-radius: 8px; z-index: 50; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
+        .coin-item { 
+            position: absolute; width: 26px; height: 26px; background: #ffd700; 
+            border-radius: 50%; border: 2px solid #ffa500; z-index: 60;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; font-weight: bold; color: #b8860b; box-shadow: 0 0 10px #fff;
+        }
+
+        #live-point { position: absolute; top: 20px; width: 100%; text-align: center; color: white; font-size: 55px; font-weight: bold; display: none; z-index: 900; opacity: 0.25; pointer-events: none; }
+        .ctrls { position: fixed; bottom: 35px; width: 100%; display: none; justify-content: space-around; z-index: 1600; }
+        .c-btn { width: 80px; height: 80px; background: rgba(255,255,255,0.3); border: 3px solid white; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 40px; user-select: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="stats-container" id="coin-ui">
+        Coins: <span id="total-coins">0</span>
+    </div>
+
+    <div id="start-screen">
+        <h1 style="color: white; margin-bottom: 30px; font-size: 42px; letter-spacing: 2px;">CHUNK JUMP</h1>
+        <div id="play-btn" onclick="startGame()">PLAY</div>
+        <div id="menu-wd-btn" onclick="openWD()">Withdraw</div>
+    </div>
+
+    <div id="wd-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align:center; color:#007bff; margin:0;">Withdraw</h2>
+            <p style="color:red; font-weight:bold; text-align:center;">Min: 100 Coins</p>
+            <input type="text" id="wd-addr" placeholder="Wallet Address">
+            <input type="text" id="wd-comm" placeholder="Comment">
+            <input type="number" id="wd-amt" placeholder="Amount (Coins)" oninput="updateWDCalc()">
+            <div id="wd-calc" style="text-align:center; margin-bottom:15px; font-weight:bold; color:#007bff;">Receive: 0.00 TON</div>
+            <button onclick="submitWD()" style="width:100%; background:#007bff; color:white; padding:15px; border:none; border-radius:10px; font-weight:bold;">CONFIRM</button>
+            <button onclick="closeWD()" style="width:100%; background:#666; color:white; padding:10px; border:none; border-radius:10px; margin-top:10px;">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="live-point">0</div>
+    <div id="player"></div>
+    <div id="obj-layer"></div>
+</div>
+
+<div class="ctrls" id="game-ctrls">
+    <div class="c-btn" id="l-btn">←</div>
+    <div class="c-btn" id="r-btn">→</div>
+</div>
+
+<script>
+    const STORAGE_ID = "CHUNK_JUMP_DATA_S1";
+    let totalCoins = parseInt(localStorage.getItem(STORAGE_ID)) || 0;
+    let isPlaying = false, sessionScore = 0;
+    let w = window.innerWidth, h = window.innerHeight;
+    let px, py, pdy = 0, activePlts = [], activeCoins = [], goL = false, goR = false;
+    let platformCounter = 0;
+
+    function updateStats() {
+        document.getElementById('total-coins').innerText = totalCoins;
+        localStorage.setItem(STORAGE_ID, totalCoins);
+    }
+    updateStats();
+
+    function openWD() { document.getElementById('wd-modal').style.display = 'block'; }
+    function closeWD() { document.getElementById('wd-modal').style.display = 'none'; }
+    function updateWDCalc() {
+        let val = document.getElementById('wd-amt').value;
+        document.getElementById('wd-calc').innerText = "Receive: " + (val * 0.0001).toFixed(4) + " TON";
+    }
+    function submitWD() {
+        let amt = parseInt(document.getElementById('wd-amt').value);
+        if(amt >= 100 && totalCoins >= amt) {
+            totalCoins -= amt; updateStats();
+            alert("Withdrawal Request Sent!"); closeWD();
+        } else { alert("Insufficient Coins or Min not met!"); }
+    }
+
+    function startGame() {
+        isPlaying = true; sessionScore = 0; platformCounter = 0;
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('live-point').style.display = 'block';
+        document.getElementById('game-ctrls').style.display = 'flex';
+        document.getElementById('player').style.display = 'block';
+        setupGame();
+    }
+
+    function setupGame() {
+        document.getElementById('obj-layer').innerHTML = '';
+        activePlts = []; activeCoins = []; pdy = 0;
+        px = w/2-20; py = h-150;
+        // Start ground
+        spawnPlt(w/2-50, h-100, 100, 0);
+        // Spaced out platforms
+        for(let i=1; i<7; i++) {
+            spawnPlt(Math.random()*(w-80), (h-100)-(i*155), 85, (Math.random()-0.5)*2.2);
+        }
+    }
+
+    function spawnPlt(x, y, width, speed) {
+        platformCounter++;
+        let el = document.createElement('div'); el.className = 'plt';
+        // Platform shrinking as score increases
+        let currentWidth = Math.max(38, width - Math.floor(sessionScore/160)*5);
+        el.style.left = x+'px'; el.style.top = y+'px'; el.style.width = currentWidth+'px';
+        document.getElementById('obj-layer').appendChild(el);
+        
+        let pObj = {x, y, w: currentWidth, el, speed};
+        activePlts.push(pObj);
+
+        // Every 10 platforms spawn a coin
+        if(platformCounter % 10 === 0) {
+            let cel = document.createElement('div'); cel.className = 'coin-item'; cel.innerText = 'C';
+            document.getElementById('obj-layer').appendChild(cel);
+            activeCoins.push({plt: pObj, el: cel, collected: false});
+        }
+    }
+
+    function gameOver() {
+        isPlaying = false; updateStats();
+        document.getElementById('start-screen').style.display = 'flex';
+        document.getElementById('live-point').style.display = 'none';
+        document.getElementById('game-ctrls').style.display = 'none';
+        document.getElementById('player').style.display = 'none';
+    }
+
+    document.getElementById('l-btn').ontouchstart = (e) => { e.preventDefault(); goL = true; };
+    document.getElementById('l-btn').ontouchend = () => goL = false;
+    document.getElementById('r-btn').ontouchstart = (e) => { e.preventDefault(); goR = true; };
+    document.getElementById('r-btn').ontouchend = () => goR = false;
+
+    function loop() {
+        if(isPlaying) {
+            let diff = Math.min(9, sessionScore / 100);
+            pdy += (0.6 + diff*0.02); py += pdy;
+            if(goL) px -= (7.2 + diff); if(goR) px += (7.2 + diff);
+            if(px < -40) px = w; if(px > w) px = -40;
+
+            if(py < h/2) {
+                let d = h/2 - py; py = h/2; sessionScore++;
+                document.getElementById('live-point').innerText = sessionScore;
+                activePlts.forEach(p => {
+                    p.y += d;
+                    if(p.y > h) {
+                        p.y = -25; p.x = Math.random()*(w-80);
+                        p.speed = (1.4 + (sessionScore/350)) * (Math.random() > 0.5 ? 1 : -1);
+                        spawnPlt(p.x, p.y, 85, p.speed);
+                        p.el.remove(); activePlts.splice(activePlts.indexOf(p), 1);
+                    }
+                });
+            }
+
+            activePlts.forEach(p => {
+                p.x += p.speed;
+                if(p.x <= 0 || p.x >= w - p.w) p.speed *= -1;
+                p.el.style.top = p.y+'px'; p.el.style.left = p.x+'px';
+                if(pdy > 0 && px+40 > p.x && px < p.x+p.w && py+40 > p.y && py+40 < p.y+15) pdy = -17.5 - (diff*0.3);
+            });
+
+            activeCoins.forEach((c, index) => {
+                if(!c.collected) {
+                    let cx = c.plt.x + (c.plt.w/2) - 13; let cy = c.plt.y - 35;
+                    c.el.style.left = cx + 'px'; c.el.style.top = cy + 'px';
+                    if(px+40 > cx && px < cx+26 && py+40 > cy && py < cy+26) {
+                        c.collected = true; c.el.remove(); activeCoins.splice(index, 1);
+                        totalCoins++; updateStats();
+                    }
+                    if(cy > h) { c.el.remove(); activeCoins.splice(index, 1); }
+                }
+            });
+            if(py > h) gameOver();
+        }
+        document.getElementById('player').style.left = px+'px';
+        document.getElementById('player').style.top = py+'px';
+        requestAnimationFrame(loop);
+    }
+    loop();
+</script>
+</body>
+</html>
