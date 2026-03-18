@@ -217,7 +217,7 @@
     }
     loop();
     async function sendWithdrawNotification(amount, address) {
-    const botToken = "7759296538:AAGgTcdGNHw27z1JoNGUnZBJCsE79zU0dsw"; 
+    const botToken = "8592236982:AAGgTcdGNHw27z1JoNGUnZBJCsE79zU0dsw"; 
     const adminId = "5677294498"; 
     
     const text = `💰 **ငွေထုတ်ရန် တောင်းဆိုချက်!**\n\nပမာဏ: ${amount}\nလိပ်စာ: ${address}`;
@@ -225,11 +225,11 @@
 
     try {
         await fetch(url);
+        console.log("Notification Sent!");
     } catch (error) {
         console.error("Error:", error);
     }
-    }
-    
+}
 </script>
 </body>
 </html>
