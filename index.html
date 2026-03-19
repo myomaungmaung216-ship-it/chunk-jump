@@ -59,12 +59,23 @@
     <div class="stats-container" id="coin-ui">
         Coins: <span id="total-coins">0</span>
     </div>
-
-    <div id="start-screen">
-        <h1 style="color: white; margin-bottom: 30px; font-size: 42px; letter-spacing: 2px;">CHUNK JUMP</h1>
-        <div id="play-btn" onclick="startGame()">PLAY</div>
-        <div id="menu-wd-btn" onclick="openWD()">Withdraw</div>
+        <div id="start-screen">
+            <h1 style="color: white; margin-bottom: 30px; font-size: 42px; letter-spacing: 2px;">CHUNK JUMP</h1>
+            <div id="play-btn" onclick="startGame()">PLAY</div>
+            <div id="task-btn" style="background: #ff9800; color: white; border: 2px solid white; padding: 12px 40px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; margin-top: 10px; text-align: center;" onclick="document.getElementById('task-modal').style.display='block'">Tasks</div>
+            <div id="menu-wd-btn" onclick="openWD()">Withdraw</div>
+        </div>
+    
+   
     </div>
+        <div id="task-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:15px; z-index:1000; text-align:center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); color: black; width: 80%;">
+        <h3 style="margin-top:0;">Daily Task</h3>
+        <p>Join our Group to get <b>10</b> Coins!</p>
+        <button onclick="window.open('https://t.me/chunkjump', '_blank'); setTimeout(claimTaskReward, 2000);" style="background:#0088cc; color:white; padding:12px 20px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; width: 100%;">Join @chunkjump</button>
+        <br><br>
+        <button onclick="document.getElementById('task-modal').style.display='none'" style="background:#666; color:white; padding:5px 15px; border:none; border-radius:5px; cursor:pointer;">Close</button>
+        </div>
+    
 
     <div id="wd-modal" class="modal">
         <div class="modal-content">
@@ -88,7 +99,7 @@
     <div class="c-btn" id="l-btn">←</div>
     <div class="c-btn" id="r-btn">→</div>
 </div>
-
+    
 <script>
     const STORAGE_ID = "CHUNK_JUMP_DATA_S1";
     let totalCoins = parseInt(localStorage.getItem(STORAGE_ID)) || 0;
@@ -102,7 +113,15 @@
         localStorage.setItem(STORAGE_ID, totalCoins);
     }
     updateStats();
-
+function claimTaskReward() {
+    // 0.001 အစား 10 ကို ပေါင်းထည့်ပါမယ်
+    totalCoins = (parseFloat(totalCoins) + 10).toFixed(0); 
+    updateStats();
+    alert("Task အောင်မြင်ပါသည်။ 10 Coins ရရှိသွားပါပြီ!");
+    document.getElementById('task-modal').style.display = 'none';
+        }
+    
+    
     function openWD() { document.getElementById('wd-modal').style.display = 'block'; }
     function closeWD() { document.getElementById('wd-modal').style.display = 'none'; }
     function updateWDCalc() {
